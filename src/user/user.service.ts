@@ -27,7 +27,7 @@ export class UserService {
 
     return {
       message: 'Registration successful',
-      user: { id: user._id, email: user.email, createdAt: user.createdAt },
+      user: { id: user._id, email: user.email },
     };
   }
 }

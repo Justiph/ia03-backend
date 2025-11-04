@@ -1,6 +1,6 @@
 # IA03 Backend
 
-A NestJS-based backend application with user authentication and MongoDB integration.
+NestJS backend with JWT authentication (access + refresh tokens) and MongoDB (Mongoose).
 
 ## Prerequisites
 
@@ -31,6 +31,12 @@ MONGODB_URI=mongodb://localhost:27017/ia03-db
 # Server
 PORT=3000
 FRONTEND_ORIGIN=http://localhost:5173
+
+# JWT
+ACCESS_TOKEN_SECRET=replace-with-strong-secret
+ACCESS_TOKEN_EXPIRES=15m
+REFRESH_TOKEN_SECRET=replace-with-strong-secret
+REFRESH_TOKEN_EXPIRES=7d
 ```
 
 ## Running the Application
@@ -69,11 +75,16 @@ npm run start:debug
 
 ## API Endpoints
 
-The application runs on `http://localhost:3000` by default.
+Base URL: `http://localhost:${PORT}` (default `3000`).
 
-### User Endpoints
-- `POST /user/register` - Register a new user
-- `POST /user/login` - Login user
+### Auth
+- `POST /auth/login` → body: `{ email, password }` → `{ accessToken, refreshToken, user }`
+- `POST /auth/refresh` → body: `{ refreshToken }` → `{ accessToken, refreshToken }` (rotated)
+- `POST /auth/logout` (Bearer access token) → `{ message }` (revokes refresh via `tokenVersion`)
+- `GET /auth/profile` (Bearer access token) → `{ id, email }`
+
+### User
+- `POST /user/register` → body: `{ email, password }` → `{ message, user }`
 
 ## Technologies Used
 
@@ -93,6 +104,12 @@ src/
 ├── app.module.ts
 ├── app.service.ts
 ├── main.ts
+├── auth/
+│   ├── auth.controller.ts
+│   ├── auth.module.ts
+│   ├── auth.service.ts
+│   ├── jwt.guard.ts
+│   └── jwt.strategy.ts
 └── user/
     ├── dto/
     │   └── register.dto.ts
@@ -103,9 +120,14 @@ src/
     └── user.service.ts
 ```
 
-## Database Schema
+## Auth Flow (Summary)
 
-The application uses MongoDB with Mongoose schemas for data modeling.
+- Login verifies credentials, returns short-lived access token and long-lived refresh token.
+- Protected routes use `JwtAuthGuard` with access token (Authorization: `Bearer <token>`).
+- When refresh requested, the server verifies refresh token, checks `tokenVersion`, and returns a new pair (access + rotated refresh).
+- Logout increments `tokenVersion` to invalidate all existing refresh tokens for that user.
+
+See `BACKEND_AUTH_FLOW.md` for details.
 
 ## Contributing
 
